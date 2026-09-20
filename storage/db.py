@@ -1,76 +1,40 @@
-import aiosqlite
+from aiomysql import Pool
+
+import aiomysql
     
-async def sql3_table() -> None:
-    async with aiosqlite.connect('Addresses.sqlite') as cnn:
-        try:
-            csr = await cnn.cursor()
-            
-            await csr.execute('CREATE TABLE IF NOT EXISTS Clients ('
-                              'client_id BIGINT, '
-                              'row TEXT) '
-                              )
-        finally:
-            if csr != None:
-                await csr.close()
-            
-async def sql3_remove_row(client: int, row: str) -> None:
-    async with aiosqlite.connect('Addresses.sqlite') as cnn:
-        try:
-            csr = await cnn.cursor()
-            
-            await csr.execute('DELETE FROM Clients WHERE client_id = ? AND row = ? ',
-                             (client, row)
-                             )
+host = '127.0.0.1'
+port = 3306
+db = 'TrackBase'
+user='me'
+password='meme1234'
+
+async def init_pl() -> None:
+    return await aiomysql.create_pool(
+        host=host,
+        port=port,
+        db=db,
+        password=password,
+        user=user
+        )
+        
+async def init_db(
+    pl: Pool
+) -> Pool:
+    async with pl.acquire() as cnn:
+        async with cnn.cursor() as cr:
+            await cr.execute("""
+                                CREATE TABLE IF NOT EXISTS Table_1 (
+                                    num               INT         AUTO_INCREMENT    PRIMARY KEY,
+                                    u_id              BIGINT                           NOT NULL,
+                                    wallet_id         TEXT                             NOT NULL
+                                    )
+                                    """)
+            await cr.execute("""
+                                CREATE TABLE IF NOT EXISTS Table_2 (
+                                    num               INT         AUTO_INCREMENT    PRIMARY KEY,
+                                    u_id              BIGINT                           NOT NULL,
+                                    hashs             TEXT                             NOT NULL
+                                    )
+                                    """)
             await cnn.commit()
-        finally:
-            if csr != None:
-                await csr.close()
-                
-async def sql3_remove_all_row(client: int) -> None:
-    async with aiosqlite.connect('Addresses.sqlite') as cnn:
-        try:
-            csr = await cnn.cursor()
-            
-            await csr.execute('DELETE FROM Clients WHERE client_id = ? ',
-                             (client, )
-                             )
-            await cnn.commit()
-        finally:
-            if csr != None:
-                await csr.close()
-                
-async def sql3_receipt_row(client: int) -> str | None:
-    async with aiosqlite.connect('Addresses.sqlite') as cnn:
-        try:
-            csr = await cnn.cursor()
-            
-            await csr.execute('SELECT row FROM Clients '
-                              'WHERE client_id = ? '
-                              'LIMIT 5',
-                              (client, )
-                              )
-            
-            raw_data = await csr.fetchall()
-            
-            if raw_data != []:
-                rows = [row[0] for row in raw_data]
-                return rows
-            return None
-        finally:
-            if csr != None:
-                await csr.close()
-    
-async def sql3_addopt_row(client: int, row: str) -> None:
-    async with aiosqlite.connect('Addresses.sqlite') as cnn:
-        try:
-            csr = await cnn.cursor()
-            
-            await csr.execute('INSERT INTO Clients '
-                              '(client_id, row) '
-                              'VALUES (?, ?)',
-                              (client, row)
-                              )
-            await cnn.commit()
-        finally:
-            if csr != None:
-                await csr.close()
+            await cr.close()

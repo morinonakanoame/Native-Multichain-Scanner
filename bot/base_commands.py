@@ -18,75 +18,91 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 router = Router() 
-
-def build_keyboards_to_main_menu():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text='Track',
-                    callback_data="action:track_row_action"
-                ),
-                InlineKeyboardButton(
-                    text='Untrack',
-                    callback_data="action:untrack_row_action"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text='Wallets',
-                    callback_data="action:untrack_all_rows_action"
-                )
-            ]
-        ]
-    )
         
-    
 @router.message(Command('start', prefix='/!.'))
 async def handler_greet_message(
-    msg: types.Message,
+    message: types.Message,
     state: FSMContext
 ) -> None:
     await state.clear()
     
-    chat_id = msg.from_user.id
-    await msg.bot.send_chat_action(
+    u_id = message.from_user.id
+    await message.bot.send_chat_action(
         action=ChatAction.TYPING,
-        chat_id=chat_id
+        chat_id=u_id
     )
-    text = (f"<b>👋 Hello, this is a Tracker.</b>\n\n"
-            f"🕵🏻 I can track wallets, let's get started!")
-    action = await msg.answer(
+    text = (
+        "<b>👋 Welcome to Wallet Tracker</b>\n\n"
+        "<blockquote>"
+         "⛓️ Supported networks: <code>4</code>\n"
+        "👛 Wallet limit: <code>5 addresses</code>\n"
+        "🔔 Service: activity monitoring for saved wallets"
+        "</blockquote>\n\n"
+        "<i>Choose an action below to manage your tracking list.</i>"
+        )
+    action = await message.answer(
         text=text,
         parse_mode=ParseMode.HTML,
-        reply_markup=build_keyboards_to_main_menu()
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text='➕ Add',
+                        callback_data="action:track_action"
+                    ),
+                    InlineKeyboardButton(
+                        text='🗑️ Remove',
+                        callback_data="action:untrack_action"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text='📒 My Wallets',
+                        callback_data="action:list_action"
+                    )
+                ]
+            ]
+        )
     )
-    await state.update_data(
-        action=action.message_id
-    )
+    await state.update_data(action=action.message_id)
 
 @router.callback_query(lambda menu: menu.data == "button_to_main_menu")
 async def handler_back_menu_message(
-    call: CallbackQuery,
+    callback: CallbackQuery,
     state: FSMContext
 ) -> None:
-    chat_id = call.from_user.id
-    
-    await call.bot.send_chat_action(
-            action=ChatAction.TYPING,
-            chat_id=chat_id
-            )
-        
-    action = await state.get_data()
-    msg = action.get('action')
-    
-    text = (f"<b>Hello, this is a Tracker.</b>\n\n"
-            f"🕵🏻 I can track wallets, let's get started!")
-                                 
-    await call.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=msg,
-                text=text,
-                parse_mode=ParseMode.HTML,
-                reply_markup=build_keyboards_to_main_menu()
-            )
+    await state.clear()
+    text = (
+        "<b>🏠 Welcome to back a main menu of Tracker!</b>\n\n"
+        "<blockquote>"
+        "⛓️ Supported networks: <code>4</code>\n"
+        "👛 Wallet limit: <code>5 addresses</code>\n"
+        "🔔 Service: activity monitoring for saved wallets"
+        "</blockquote>"
+        "\n\n<i>Choose an action below to manage your tracking list.</i>"
+        )
+    action = await callback.message.edit_text(
+        text=text,
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text='➕ Add',
+                        callback_data="action:track_action"
+                    ),
+                    InlineKeyboardButton(
+                        text='🗑️ Remove',
+                        callback_data="action:untrack_action"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text='📒 My Wallets',
+                        callback_data="action:list_action"
+                    )
+                ]
+            ]
+        )
+        )
+    await state.update_data(action=action.message_id)

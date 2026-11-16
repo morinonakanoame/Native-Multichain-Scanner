@@ -1,32 +1,69 @@
-from aiogram import Dispatcher
+from aiogram import Dispatcher, Bot
+from database import (
+    init_pl,
+    init_db
+)
 
-from others.cfg import bot
-from storage.db import sql3_table
-from handlers.routers.main_router import main_router
+from bot.main_commands import router as commander_router
 
-from blockchains.eth_methods.eth_scanner import eth_main_scan
-from blockchains.bnb_methods.bnb_scanner import bnb_main_scan
-from blockchains.sol_methods.sol_scanner import sol_main_scan
-from blockchains.ton_methods.ton_scanner import ton_main_scan
+from scanners.eth import scanner as eth_scanner
+from scanners.bnb import scanner as bnb_scanner
+from scanners.gram import scanner as gram_scanner
+from scanners.sol import scanner as sol_scanner
 
+import logging
 import asyncio
+import os
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+bot = Bot(
+    token=os.environ["token"]
+)
 
 dp = Dispatcher()
-
 dp.include_router(
-    main_router
+    commander_router
 )   
 
 async def main():
-    await sql3_table()
+    pl = await init_pl()
+    await init_db(pl)
+    dp['pl'] = pl
     
-    asyncio.create_task(eth_main_scan())
-    asyncio.create_task(bnb_main_scan())
-    asyncio.create_task(sol_main_scan())
-    asyncio.create_task(ton_main_scan())
-        
-    await dp.start_polling(bot)
-    
-
+    try:
+        async with asyncio.TaskGroup() as tgroup:
+            tasks = [
+                tgroup.create_task(
+                    eth_scanner(pl, bot)
+                ),
+                tgroup.create_task(
+                    bnb_scanner(pl, bot)
+                ),
+                tgroup.create_task(
+                    gram_scanner(pl, bot)
+                ),
+                tgroup.create_task(
+                    sol_scanner(pl, bot)
+                )
+            ]
+            polling_task = tgroup.create_task(
+                dp.start_polling(bot)
+                )
+            try: 
+                await polling_task
+            except asyncio.CancelledError as exc:
+                print(f"Poll closing error - {exc}")
+                raise
+            finally:
+                for task in tasks:
+                    task.cancel()
+    except asyncio.CancelledError as exc:
+        print(f"Tasks closing error - {exc}.")
+        raise
+    finally:
+        pl.close()
+        await pl.wait_closed()
+            
 if __name__ == "__main__":
     asyncio.run(main()) 

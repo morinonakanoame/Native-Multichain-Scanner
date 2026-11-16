@@ -1,9 +1,9 @@
 from aiogram import Router
 
 from bot.base_commands import router as menu_router
-from bot.handlers.menu_commands import router as wallet_menu_router
-from bot.handlers.registration_commands import router as wallet_add_router
-from bot.handlers.delete_commands import router as wallet_delete_router
+from bot.handlers.wallet_menu_commands import router as wallet_menu_router
+from bot.handlers.wallet_registration_commands import router as wallet_add_router
+from bot.handlers.wallet_deletion_commands import router as wallet_delete_router
 
 router = Router()
 

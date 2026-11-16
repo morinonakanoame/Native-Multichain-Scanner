@@ -10,11 +10,13 @@ from aiogram.types import (
 )
 
 from aiogram.fsm.context import FSMContext
+
 from aiogram.enums import ParseMode
 
 from aiomysql import Pool
 
 router = Router()
+
 
 def build_button_to_back_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
